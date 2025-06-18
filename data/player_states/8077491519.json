@@ -1,12 +1,12 @@
 {
   "currentSection": "1",
   "attributes": {
-    "habilidadeInicial": 8,
-    "habilidadeAtual": 8,
-    "energiaInicial": 17,
-    "energiaAtual": 17,
-    "sorteInicial": 8,
-    "sorteAtual": 8
+    "habilidadeInicial": 10,
+    "habilidadeAtual": 10,
+    "energiaInicial": 21,
+    "energiaAtual": 21,
+    "sorteInicial": 9,
+    "sorteAtual": 9
   },
   "inventory": [
     "Espada",
@@ -15,7 +15,16 @@
   ],
   "provisions": 10,
   "potion": {
-    "name": "Poção da Força",
-    "doses": 2
-  }
+    "name": "Poção da Habilidade",
+    "doses": 2,
+    "type": "habilidade"
+  },
+  "gold": 0,
+  "jewels": [],
+  "combat": null,
+  "temporaryModifiers": {},
+  "knowledge": {},
+  "cursedItems": [],
+  "anotatedSection": null,
+  "lastMessageId": 145
 }
