@@ -136,16 +136,15 @@ function registerCallbackHandlers(bot) {
                     playerState.currentSection = 'choose_potion';
                     savePlayerState(chatId, playerState);
 
-                    bot.sendMessage(chatId, buildPlayerSheetMessage(playerState), { parse_mode: "Markdown" });
+                    // bot.sendMessage(chatId, buildPlayerSheetMessage(playerState), { parse_mode: "Markdown" });
 
                     bot.sendMessage(chatId, INTRO_TEXTS.attributeGeneration.potionChoice, {
                         reply_markup: {
-                            inline_keyboard: [
+                            inline_keyboard: 
                                 INTRO_TEXTS.attributeGeneration.potionOptions.map(option => ([{
                                     text: option.text,
                                     callback_data: option.callback_data
                                 }]))
-                            ]
                         },
                         parse_mode: "Markdown"
                     });
@@ -153,7 +152,6 @@ function registerCallbackHandlers(bot) {
                     bot.sendMessage(chatId, INTRO_TEXTS.attributeGeneration.sorte.invalidRoll);
                 }
                 break;
-
             // Escolha da Poção
             case "choose_potion_habilidade":
             case "choose_potion_forca":
@@ -165,11 +163,12 @@ function registerCallbackHandlers(bot) {
                     else potionName = 'Poção da Fortuna';
 
                     playerState.potion = { name: potionName, doses: 2 };
-                    playerState.currentSection = '1'; // A primeira página do jogo real é a "1"
+                    playerState.currentSection = '1';
                     savePlayerState(chatId, playerState);
 
                     bot.sendMessage(chatId, `Você escolheu a *${potionName}*! Sua aventura está prestes a começar.`, { parse_mode: "Markdown" });
-                    displayGameSection(chatId, '1', bot, playerState); // Exibe a página 1 do gameData.json
+                    bot.sendMessage(chatId, buildPlayerSheetMessage(playerState), { parse_mode: "Markdown" });
+                    displayGameSection(chatId, '1', bot, playerState);
                 } else {
                     bot.sendMessage(chatId, INTRO_TEXTS.attributeGeneration.invalidPotion + "\n" + INTRO_TEXTS.common.startNewGame);
                 }
@@ -202,7 +201,7 @@ module.exports = {
 // Função auxiliar para exibir a ficha do jogador
 function buildPlayerSheetMessage(playerState) {
     return `
-        *--- SUA FICHA DE AVENTURA ---*
+        *--- FICHA DE AVENTURA ---*
         *HABILIDADE Inicial:* ${playerState.attributes.habilidadeInicial}
         *HABILIDADE Atual:* ${playerState.attributes.habilidadeAtual}
 

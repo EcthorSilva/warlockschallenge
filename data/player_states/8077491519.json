@@ -1,12 +1,12 @@
 {
-  "currentSection": "choose_potion",
+  "currentSection": "1",
   "attributes": {
-    "habilidadeInicial": 9,
-    "habilidadeAtual": 9,
-    "energiaInicial": 15,
-    "energiaAtual": 15,
-    "sorteInicial": 12,
-    "sorteAtual": 12
+    "habilidadeInicial": 8,
+    "habilidadeAtual": 8,
+    "energiaInicial": 17,
+    "energiaAtual": 17,
+    "sorteInicial": 8,
+    "sorteAtual": 8
   },
   "inventory": [
     "Espada",
@@ -14,5 +14,8 @@
     "Lanterna"
   ],
   "provisions": 10,
-  "potion": null
+  "potion": {
+    "name": "Poção da Força",
+    "doses": 2
+  }
 }
