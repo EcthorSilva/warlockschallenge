@@ -1,0 +1,18 @@
+{
+  "currentSection": "choose_potion",
+  "attributes": {
+    "habilidadeInicial": 9,
+    "habilidadeAtual": 9,
+    "energiaInicial": 15,
+    "energiaAtual": 15,
+    "sorteInicial": 12,
+    "sorteAtual": 12
+  },
+  "inventory": [
+    "Espada",
+    "Armadura de Couro",
+    "Lanterna"
+  ],
+  "provisions": 10,
+  "potion": null
+}

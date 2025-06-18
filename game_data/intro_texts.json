@@ -1,0 +1,37 @@
+{
+  "welcomeMessage": "Bem-vindo, aventureiro, ao *Feiticeiro da Montanha de Fogo*!\nEste é um livro-jogo interativo onde suas escolhas e a sorte determinarão seu destino. Prepare-se para uma jornada perigosa em busca do tesouro oculto de Zagor, o Feiticeiro!\n\nO projeto é baseado no clássico livro-jogo de Steve Jackson e Ian Livingstone, \"O Feiticeiro da Montanha de Fogo\", publicado no Brasil pela Editora Marques Saraiva.\n\nVocê precisará de coragem e astúcia, e também de um pouco de sorte para sobreviver aos perigos que aguardam nas profundezas da montanha.\n\nEscolha uma das opções abaixo para começar:",
+  "rumorsText": "*BOATOS*\n\nSomente um aventureiro imprudente partiria em uma busca tão perigosa sem primeiro descobrir o máximo possível a respeito da montanha e seus tesouros. Antes da sua chegada ao sopé da Montanha do Cume de Fogo, você passou diversos dias com as pessoas da cidadezinha local, a uns dois dias de viagem da base do monte. Por ser uma pessoa simpática, você não teve muita dificuldade em se relacionar com os camponeses da região.\n\nEmbora eles contassem muitas histórias sobre o misterioso santuário do Feiticeiro, você não ficou muito convencido de que todas ou alguma delas, na realidade eram baseadas em fatos reais. Os moradores da vila tinham visto muitos aventureiros passarem por lá a caminho da montanha, mas muito poucos retornaram algum dia. A jornada que você tinha pela frente era extremamente perigosa, isso você sabia com certeza. Nenhum daqueles que retornaram à cidadezinha pensava em voltar à Montanha do Cume de Fogo.\n\nParecia haver algum grau de verdade no boato de que o tesouro do Feiticeiro estava guardado em uma arca magnífica, com duas fechaduras, e que as chaves para estas fechaduras ficavam guardadas por vários seres horripilantes dentro das cavernas. O próprio Feiticeiro era um mágico de grande poder. Alguns o descreviam como sendo um velho, outros como um jovem. Alguns diziam que seu poder provinha de um baralho encantado, outros que era derivado das luvas de seda negra que ele sempre usava.\n\nA entrada da montanha era guardada por um bando de Goblins com o rosto cheio de verrugas, criaturas estúpidas que adoravam comer e beber. Nas câmaras mais interiores, os seres se tornavam mais assustadores.\n\nPara chegar às câmaras interiores você teria que atravessar um rio. O serviço de travessia era regular, mas o barqueiro gostava sempre de fazer bons negócios, por isso você deveria ter uma Peça de Ouro para a viagem. Os habitantes locais também o incentivaram a fazer um bom mapa de sua trajetória pois sem um mapa você terminaria se perdendo irremediavelmente no interior da montanha.\n\nQuando finalmente chegou o seu dia de partir, a vila inteira apareceu para desejar a você uma viagem segura. Os olhos de muitas da mulheres se encheram de lágrimas, tanto das jovens quanto das velhas. Você não conseguiu evitar de pensar se não seriam lágrimas antecipadas de sofrimento, choradas por olhos que não voltariam a vê-lo vivo.",
+  "rumorsFollowUpOptions": "O que você fará agora?",
+  "common": {
+    "startNewGame": "Por favor, inicie um novo jogo com /start.",
+    "invalidChoice": "Desculpe, não entendi sua escolha. Por favor, use os botões fornecidos ou digite um comando válido como /start, /reset, /help ou /instruções."
+  },
+  "resetGameConfirm": "Seu jogo foi reiniciado. Digite /start para começar uma nova aventura!",
+  "helpMessage": "*COMANDOS DISPONÍVEIS:*\n\n`/start` - Inicia ou reinicia o jogo, levando você ao menu principal.\n`/reset` - Apaga o seu progresso atual e permite que você comece uma nova aventura do zero.\n`/help` - Exibe esta lista de comandos.\n`/instruções` - Mostra as regras básicas do jogo e como interagir.",
+  "instructionsMessage": "*COMO JOGAR:*\n\nEste é um livro-jogo interativo. Toda a interação é feita através de *botões*. Quando uma descrição de cena for apresentada, as opções de escolha aparecerão como botões clicáveis logo abaixo da mensagem.\n\n*Rolagens de Dados:*\nQuando for necessário rolar dados (para atributos, testes de sorte ou combate), você verá um botão como 'Rolar d6' ou 'Rolar 2d6'. Basta clicar nele e o bot fará a rolagem para você!\n\n*Criação de Personagem:*\nNo início da jornada, você rolará dados para definir sua HABILIDADE, ENERGIA e SORTE iniciais. Preste atenção às instruções.\n\n*Combate:*\nAs batalhas serão travadas usando rolagens de dados automáticas. Você será guiado passo a passo para cada 'Série de Ataques'.\n\n*Inventário e Atributos:*\nSeu bot manterá controle dos seus atributos (HABILIDADE, ENERGIA, SORTE), itens e provisões. Fique atento às mensagens para saber quando algo muda.\n\n*Fim do Jogo:*\nO jogo termina quando sua ENERGIA chega a zero ou quando você atinge o tesouro do Feiticeiro!\n\n*Boa sorte, aventureiro!*",
+  "attributeGeneration": {
+    "habilidade": {
+      "prompt": "Primeiro, para determinar sua *HABILIDADE* inicial:\n\nSua Habilidade expressa sua capacidade como espadachim e eficiência geral nas lutas; quanto mais alto, melhor.\n\nPor favor, *clique no botão 'Rolar d6' abaixo*.",
+      "buttonText": "Rolar d6",
+      "invalidRoll": "Por favor, clique no botão 'Rolar d6' para determinar sua HABILIDADE. Não digite nada."
+    },
+    "energia": {
+      "prompt": "Agora, para determinar sua *ENERGIA* inicial:\nSua Energia expressa sua constituição física geral, sua vontade de sobreviver, sua determinação e aptidão global; quanto mais alto for o seu índice de ENERGIA, por mais tempo você conseguirá sobreviver.\n\nPor favor, *clique no botão 'Rolar 2d6' abaixo*.",
+      "buttonText": "Rolar 2d6",
+      "invalidRoll": "Por favor, clique no botão 'Rolar 2d6' para determinar sua ENERGIA. Não digite nada."
+    },
+    "sorte": {
+      "prompt": "Finalmente, para determinar sua *SORTE* inicial:\nSeu índice de Sorte indica o quanto você é, naturalmente, uma pessoa de sorte. Sorte e magia são fatos da vida no reino de fantasia que você está se preparando para explorar.\n\nPor favor, *clique no botão 'Rolar d6' abaixo*.",
+      "buttonText": "Rolar d6",
+      "invalidRoll": "Por favor, clique no botão 'Rolar d6' para determinar sua SORTE. Não digite nada."
+    },
+    "potionChoice": "Agora, aventureiro, você pode levar uma garrafa de uma poção mágica para te ajudar em sua busca. Escolha uma das seguintes (clique no botão correspondente):",
+    "potionOptions": [
+        { "text": "Poção da Habilidade", "callback_data": "choose_potion_habilidade" },
+        { "text": "Poção da Força", "callback_data": "choose_potion_forca" },
+        { "text": "Poção da Fortuna", "callback_data": "choose_potion_fortuna" }
+    ],
+    "invalidPotion": "Escolha uma poção válida usando os botões.",
+    "tooOldToEdit": "A mensagem é muito antiga para ser editada. Enviando nova mensagem..."
+  }
+}
