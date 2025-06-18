@@ -2045,13 +2045,13 @@
     },
     "156": {
         "texto": [
-            "Você bate contra a porta com o ombro. Jogue dois dados."
+            "Você bate contra a porta com o ombro."
         ],
         "teste_atributo": {
             "atributo": "HABILIDADE",
             "dados": 2,
-            "sucesso": { "texto": "Se o número for menor ou igual à sua HABILIDADE, você conseguiu.", "vai_para": "343" },
-            "falha": { "texto": "Se o número for maior, você esfrega o ombro machucado e resolve não tentar de novo.", "vai_para": "92" }
+            "sucesso": { "texto": "Você conseguiu.", "vai_para": "343" },
+            "falha": { "texto": "Você esfrega o ombro machucado e resolve não tentar de novo.", "vai_para": "92" }
         },
         "imagem": "nenhuma",
         "minimap_coords": { "x": 0, "y": 0 }

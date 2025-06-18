@@ -1,5 +1,6 @@
 const { loadPlayerState, deletePlayerState } = require('../lib/playerState');
 const { INTRO_TEXTS } = require('../lib/gameLoader');
+const { buildPlayerSheetMessage } = require('../lib/messageBuilder');
 
 // Função auxiliar para exibir o menu principal
 function displayMainMenu(chatId, bot) {
@@ -42,6 +43,20 @@ function registerCommandHandlers(bot) {
     bot.onText(/\/instruções/, (msg) => {
         const chatId = msg.chat.id;
         bot.sendMessage(chatId, INTRO_TEXTS.instructionsMessage, { parse_mode: "Markdown" });
+    });
+
+    // Comando /ficha para exibir a ficha do personagem
+    bot.onText(/\/ficha/, (msg) => {
+        const chatId = msg.chat.id;
+        const playerState = loadPlayerState(chatId);
+
+        // Verifica se um jogo está em andamento (se os atributos foram gerados)
+        if (playerState && playerState.attributes && playerState.attributes.habilidadeInicial) {
+            const sheetMessage = buildPlayerSheetMessage(playerState);
+            bot.sendMessage(chatId, sheetMessage, { parse_mode: "Markdown" });
+        } else {
+            bot.sendMessage(chatId, "Nenhum jogo em andamento. Digite /start para criar seu personagem.");
+        }
     });
 
     // Lida com mensagens de texto do usuário que não são comandos

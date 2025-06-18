@@ -2,6 +2,7 @@ const { loadPlayerState, savePlayerState, deletePlayerState } = require('../lib/
 const { rollDice } = require('../lib/diceRoller');
 const { INTRO_TEXTS, GAME_HISTORY } = require('../lib/gameLoader');
 const { displayMainMenu } = require('./commandHandlers');
+const { buildPlayerSheetMessage } = require('../lib/messageBuilder'); // Importa a função de construção da ficha
 const fs = require('fs');
 const path = require('path');
 
@@ -464,7 +465,7 @@ async function handleDiceTest(chatId, bot, playerState, diceTestData) {
 async function handleAttributeTest(chatId, bot, playerState, attributeTestData) {
     const roll = rollDice(attributeTestData.dados, 6);
     const attributeValue = playerState.attributes[attributeTestData.atributo + 'Atual'];
-    let message = `Você testa sua *${attributeTestData.atributo.toUpperCase()}* (Valor: ${attributeValue}). Rolou ${attributeTestData.dados}d6 e obteve *${roll}*.\n`;
+    let message = '';
 
     let nextSectionId = null;
     let appliedEffect = null;
@@ -880,7 +881,7 @@ function registerCallbackHandlers(bot) {
 
         let playerState = loadPlayerState(chatId);
 
-        if (!playerState.currentSection && !["start_journey", "rumors", "go_back_to_main_menu"].includes(data) && !data.startsWith("roll_")) {
+        if (!playerState.currentSection && !["start_journey", "rumors", "go_back_to_main_menu", "begin_adventure"].includes(data) && !data.startsWith("roll_")) {
             bot.answerCallbackQuery(callbackQuery.id, { text: INTRO_TEXTS.common.startNewGame });
             bot.sendMessage(chatId, INTRO_TEXTS.common.startNewGame, { parse_mode: "Markdown" });
             return;
@@ -1146,11 +1147,42 @@ function registerCallbackHandlers(bot) {
                         potionName = 'Poção da Fortuna'; potionType = 'fortuna';
                     }
                     playerState.potion = { name: potionName, doses: 2, type: potionType };
-                    playerState.currentSection = '1';
-                    await bot.editMessageText(`Você escolheu a *${potionName}*! Sua aventura está prestes a começar.`, {
-                        chat_id: chatId, message_id: message.message_id, parse_mode: "Markdown"
+                    playerState.currentSection = 'ready_to_start';
+                    savePlayerState(chatId, playerState);
+
+                    const confirmationMessage = `Você escolheu a *${potionName}*! Sua aventura está prestes a começar.\n\nCaso queira verificar sua ficha de personagem a qualquer momento, use o comando /ficha`;
+                    
+                    await bot.editMessageText(confirmationMessage, {
+                        chat_id: chatId,
+                        message_id: message.message_id,
+                        reply_markup: {
+                            inline_keyboard: [
+                                [{ text: "Iniciar Aventura", callback_data: "begin_adventure" }]
+                            ]
+                        },
+                        parse_mode: "Markdown"
                     });
-                    await bot.sendMessage(chatId, buildPlayerSheetMessage(playerState), { parse_mode: "Markdown" });
+                }
+                break;
+                
+            case "begin_adventure":
+                if (playerState && playerState.currentSection === 'ready_to_start') {
+                    // Apaga a mensagem "Sua aventura está prestes a começar"
+                    try {
+                        await bot.deleteMessage(chatId, message.message_id);
+                    } catch (error) {
+                        console.error("Não foi possível apagar a mensagem:", error.message);
+                        // Se falhar, edita a mensagem para limpá-la
+                        await bot.editMessageText("Iniciando...", {
+                             chat_id: chatId,
+                             message_id: message.message_id,
+                             reply_markup: null
+                        }).catch(e => console.error("Falha ao editar a mensagem também:", e.message));
+                    }
+
+                    // Inicia a história na seção 1
+                    playerState.currentSection = '1';
+                    savePlayerState(chatId, playerState);
                     await displayGameSection(chatId, '1', bot, playerState);
                 }
                 break;
@@ -1180,25 +1212,3 @@ module.exports = {
     registerCallbackHandlers
 };
 
-
-// Função auxiliar para exibir a ficha do jogador
-function buildPlayerSheetMessage(playerState) {
-    return `
-*--- SUA FICHA DE AVENTURA ---*
-*HABILIDADE Inicial:* ${playerState.attributes.habilidadeInicial}
-*HABILIDADE Atual:* ${playerState.attributes.habilidadeAtual}
-
-*ENERGIA Inicial:* ${playerState.attributes.energiaInicial}
-*ENERGIA Atual:* ${playerState.attributes.energiaAtual}
-
-*SORTE Inicial:* ${playerState.attributes.sorteInicial}
-*SORTE Atual:* ${playerState.attributes.sorteAtual}
-
-*ITENS:* ${playerState.inventory.length > 0 ? playerState.inventory.join(', ') : 'Nenhum'}
-*PROVISÕES RESTANTES:* ${playerState.provisions}
-*OURO:* ${playerState.gold}
-*JÓIAS:* ${playerState.jewels.length > 0 ? playerState.jewels.map(j => j.name).join(', ') : 'Nenhuma'}
-*POÇÃO:* ${playerState.potion ? `${playerState.potion.name} (${playerState.potion.doses} doses)` : 'Nenhuma'}
-*--------------------------------*
-    `;
-}

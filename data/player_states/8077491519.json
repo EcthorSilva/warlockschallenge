@@ -1,31 +1,30 @@
 {
   "attributes": {
-    "habilidadeInicial": 12,
-    "habilidadeAtual": 12,
-    "energiaInicial": 19,
-    "energiaAtual": 19,
-    "sorteInicial": 12,
-    "sorteAtual": 11
+    "habilidadeInicial": 7,
+    "habilidadeAtual": 7,
+    "energiaInicial": 18,
+    "energiaAtual": 18,
+    "sorteInicial": 7,
+    "sorteAtual": 6
   },
   "inventory": [
     "Espada",
     "Armadura de Couro",
-    "Lanterna",
-    "Chave 99"
+    "Lanterna"
   ],
   "provisions": 10,
   "gold": 0,
   "jewels": [],
   "potion": {
-    "name": "Poção da Habilidade",
+    "name": "Poção da Fortuna",
     "doses": 2,
-    "type": "habilidade"
+    "type": "fortuna"
   },
-  "currentSection": "159",
+  "currentSection": "293",
   "combat": null,
   "temporaryModifiers": {},
   "knowledge": {},
   "cursedItems": [],
   "anotatedSection": null,
-  "lastMessageId": 219
+  "lastMessageId": 424
 }
