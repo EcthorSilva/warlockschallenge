@@ -1,10 +1,9 @@
-// handlers/callbackHandlers.js
-const { loadPlayerState, savePlayerState } = require('../lib/playerState'); //
-const { rollDice } = require('../lib/diceRoller'); //
-const { INTRO_TEXTS, GAME_HISTORY } = require('../lib/gameLoader'); //
+const { loadPlayerState, savePlayerState, deletePlayerState } = require('../lib/playerState');
+const { rollDice } = require('../lib/diceRoller');
+const { INTRO_TEXTS, GAME_HISTORY } = require('../lib/gameLoader');
 const { displayMainMenu } = require('./commandHandlers');
-const fs = require('fs'); // Necessário para verificar imagens
-const path = require('path'); // Necessário para caminhos de imagem
+const fs = require('fs');
+const path = require('path');
 
 
 // Funções Auxiliares de Lógica do Jogo
@@ -370,21 +369,9 @@ async function useLuckInCombat(chatId, bot, playerState) {
 
     if (luckRoll <= playerState.attributes.sorteAtual) { // Teve sorte
         luckMessage += `Você teve sorte! `;
-        // Regras de sorte em combate (causar mais dano ou receber menos dano)
-        // Isso depende de quem feriu na última rodada, o que exigiria um controle de 'lastHit'
-        // Por simplicidade, vamos aplicar um bônus/penalidade padrão ou perguntar ao jogador.
-        // O livro-jogo especifica: "Se você acabou de ferir o ser..." ou "Se o ser tiver acabado de ferir você..."
-        // Para a implementação, um botão de 'usar sorte' apareceria APÓS o resultado da rodada.
-        // Como o botão aparece ANTES do resultado da rodada ser revelado, vamos dar uma opção geral de uso.
-        // Isso precisaria ser um fluxo mais complexo com botões de callback_data específicos.
-        // Por ora, vamos assumir que o jogador usa a sorte para o próximo ataque/defesa se não houver um contexto imediato.
         luckMessage += "Você sente que sua sorte influenciará o próximo movimento.";
-        // Se a intenção é aplicar no último ferimento, precisaríamos de outro `callback_query`
-        // após o resultado da rodada para que o jogador escolha usar a sorte ali.
-        // Por enquanto, apenas notifica que a sorte foi usada.
     } else { // Não teve sorte
         luckMessage += `Você não teve sorte. `;
-        // O livro-jogo descreve consequências para não ter sorte em combate (dano extra ou menos dano causado).
         luckMessage += "Sua sorte não o ajudou desta vez.";
     }
 
@@ -401,7 +388,6 @@ async function handleLuckTest(chatId, bot, playerState, luckTestData) {
     let playerLuck = playerState.attributes.sorteAtual;
     if (playerLuck <= 0) {
         bot.sendMessage(chatId, "Você não tem sorte suficiente para fazer este teste.", { parse_mode: "Markdown" });
-        // Vai para a falha se não há sorte
         if (luckTestData.falha && luckTestData.falha.vai_para) {
             playerState.currentSection = luckTestData.falha.vai_para;
             savePlayerState(chatId, playerState);
@@ -579,11 +565,6 @@ async function handleKeyPuzzle(chatId, bot, playerState, puzzleData) {
         return;
     }
 
-    // Lógica para seleção das chaves e soma.
-    // Isso é um ponto complexo para um bot, pois exigiria um processo de seleção multi-botão.
-    // Por simplicidade, vamos usar as chaves que ele possui e somar, ou simular que ele "escolhe"
-    // as primeiras 3 válidas. O livro não especifica "quais" chaves, apenas a soma dos números.
-
     let keyNumbers = [];
     availableKeys.forEach(key => {
         const match = key.match(/(\d+)/);
@@ -599,24 +580,15 @@ async function handleKeyPuzzle(chatId, bot, playerState, puzzleData) {
         return;
     }
 
-    // Pegar apenas as chaves necessárias para a soma, ou todas se o jogador tiver mais.
     const selectedKeys = keyNumbers.slice(0, puzzleData.chaves_necessarias);
     const sumOfKeys = selectedKeys.reduce((a, b) => a + b, 0);
 
     bot.sendMessage(chatId, `Você tentou as chaves: ${selectedKeys.join(', ')} (Soma: ${sumOfKeys}).`, { parse_mode: "Markdown" });
 
-    // O livro-jogo instrui a ir para a seção com o número da soma.
-    // Verificar se a seção alvo existe
     if (GAME_HISTORY[sumOfKeys.toString()]) {
         playerState.currentSection = sumOfKeys.toString();
     } else {
-        // Se a soma das chaves não leva a uma seção válida (provavelmente uma combinação incorreta no jogo)
-        // Isso geralmente resulta em uma penalidade ou "game over" no livro.
-        // Implemente a lógica de falha aqui. O history.json pode ter uma seção específica para isso.
-        // Por exemplo, seção 182, 198, 231, 233, 245, 276, 288, 290, 302, 335, 347, 387.
-        // Vamos simular a falha para 198 (dardos).
-        playerState.currentSection = "198"; // Assume que qualquer falha leva a uma armadilha genérica de chaves.
-        // Ou você pode ter um campo `puzzleData.failGoTo`
+        playerState.currentSection = "198"; 
         bot.sendMessage(chatId, "As chaves não parecem funcionar... algo inesperado acontece!", { parse_mode: "Markdown" });
     }
     savePlayerState(chatId, playerState);
@@ -626,16 +598,11 @@ async function handleKeyPuzzle(chatId, bot, playerState, puzzleData) {
 
 /**
  * Lida com monstros itinerantes.
- * @param {string} chatId - ID do chat.
- * @param {object} bot - Instância do bot.
- * @param {object} playerState - Estado do jogador.
- * @param {object} eventData - Dados do evento de monstro itinerante.
  */
 async function handleWanderingMonster(chatId, bot, playerState, eventData) {
     const roll = rollDice(1, 6);
     let monsterEncountered = null;
 
-    // Encontra o monstro na tabela
     for (const key in eventData.tabela) {
         if (parseInt(key) === roll) {
             monsterEncountered = eventData.tabela[key];
@@ -645,18 +612,13 @@ async function handleWanderingMonster(chatId, bot, playerState, eventData) {
 
     if (monsterEncountered) {
         bot.sendMessage(chatId, `Um *${monsterEncountered.nome.toUpperCase()}* apareceu! Prepare-se para lutar.`, { parse_mode: "Markdown" });
-        // Prepara os dados de combate para o monstro itinerante
         const combatConfig = {
             monstros: [monsterEncountered],
-            victoryGoTo: { vai_para: playerState.anotatedSection || eventData.fallbackSection }, // Retorna para a seção anotada ou fallback
-            // Monstros itinerantes nunca levam tesouro, então não há victory.efeito aqui.
+            victoryGoTo: { vai_para: playerState.anotatedSection || eventData.fallbackSection },
         };
-        // Se a seção que chamou o monstro itinerante anotou uma referência, use-a.
-        // O playerState.anotatedSection deve ser limpo depois de usado.
         startCombat(chatId, bot, playerState, combatConfig);
     } else {
         bot.sendMessage(chatId, "Nenhum monstro apareceu, ou houve um erro na rolagem da tabela.", { parse_mode: "Markdown" });
-        // Se nenhum monstro, apenas continue para a seção anotada.
         playerState.currentSection = playerState.anotatedSection || eventData.fallbackSection;
         savePlayerState(chatId, playerState);
         await displayGameSection(chatId, playerState.currentSection, bot, playerState);
@@ -668,17 +630,6 @@ async function handleWanderingMonster(chatId, bot, playerState, eventData) {
  * Lida com o jogo de dados de aposta na seção 130.
  */
 async function handleDiceGameBet(chatId, bot, playerState, eventData) {
-    // Esta função precisaria de um input do usuário para a aposta.
-    // Para simplificar, vamos pedir ao usuário para digitar a aposta via mensagem.
-    // Ou podemos simular uma aposta fixa.
-    // No entanto, a lógica do livro-jogo permite apostar de 1 a 20.
-    // Isso exigiria um estado intermediário para capturar a aposta.
-
-    // Para fins deste protótipo, vamos simplificar e pedir ao usuário que digite a aposta,
-    // e o bot responderá ao `message` (não `callback_query`).
-    // Ou, para manter no `callback_query`, precisamos de um "prompt" e um "estado de espera por input".
-    // Isso é mais avançado. Por ora, vamos criar um botão para "apostar X ouro" ou "apostar tudo".
-
     let options = {
         reply_markup: {
             inline_keyboard: [
@@ -718,33 +669,26 @@ async function handleCardGameLuck(chatId, bot, playerState, eventData) {
  */
 async function handlePiranhaCombat(chatId, bot, playerState, eventData) {
     let message = "A 'turbulência' são Piranhas! Elas atacam.\n";
-    // A seção 350 tem uma lógica condicional baseada no combate anterior com o CROCODILO.
-    // Para implementar isso, precisaríamos do estado do combate anterior (se o crocodilo foi ferido).
-    // Simplificando por agora, vamos para uma seção genérica de combate com piranhas ou escolher.
-
-    // A regra diz: "Se durante a sua luta com o CROCODILO você o tiver ferido, sorte sua, pois a maioria dos peixes ataca o réptil que sangra. Se você não tiver ferido o Crocodilo, os peixes podem escolher você ou ele. Jogue um dado. Se for 1 ou 2, a maioria ataca você. Se for de 3 a 6, a maioria ataca o Crocodilo."
-    // Para esta implementação, o playerState.combat precisaria ter um flag 'lastMonsterHit' ou similar.
     const crocodiloFerido = playerState.tempMonsterModifiers && playerState.tempMonsterModifiers.crocodilo_ferido;
 
     if (crocodiloFerido) {
         message += "Sua sorte: as piranhas atacam o crocodilo ferido!";
-        applyAttributeModifier(playerState, { atributo: "HABILIDADE", valor: 1 }, bot, chatId); // Exemplo de recompensa indireta
+        applyAttributeModifier(playerState, { atributo: "HABILIDADE", valor: 1 }, bot, chatId);
         applyAttributeModifier(playerState, { atributo: "SORTE", valor: 2 }, bot, chatId);
-        playerState.currentSection = "259"; // Vai para a seção de segurança após o crocodilo.
+        playerState.currentSection = "259";
     } else {
         const roll = rollDice(1, 6);
         if (roll <= 2) {
             message += "As piranhas focam em você!";
-            // Inicia combate contra piranhas aqui.
             startCombat(chatId, bot, playerState, {
                 monstros: [{ nome: "PIRANHAS", habilidade: 5, energia: 5 }],
-                victoryGoTo: { vai_para: "218" } // Volta para a margem sul, ou outra seção de saída.
+                victoryGoTo: { vai_para: "218" }
             });
             await bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
             return;
         } else {
             message += "As piranhas atacam o crocodilo (ou outro alvo próximo). Você escapa!";
-            playerState.currentSection = "259"; // Vai para a seção de segurança
+            playerState.currentSection = "259";
         }
     }
     playerState.combat.tempMonsterModifiers = {}; // Limpa modificador temporário
@@ -768,28 +712,28 @@ async function displayGameSection(chatId, sectionId, bot, playerState) {
         return;
     }
 
-    playerState.currentSection = sectionId; // Atualiza a seção atual do jogador
-    savePlayerState(chatId, playerState);
+    playerState.currentSection = sectionId;
 
-    let messageText = section.texto.join('\n');
+    let messageText = section.texto.join('\n\n');
     let inlineKeyboard = [];
 
     // Anotar referência para monstros itinerantes
     if (section.anotar_referencia) {
         playerState.anotatedSection = section.anotar_referencia;
-        savePlayerState(chatId, playerState);
     }
 
     // Lógica de Fim de Jogo
     if (section.fim_de_jogo) {
-        if (section.fim_de_jogo === "vitoria") {
-            await bot.sendMessage(chatId, messageText, { parse_mode: "Markdown" });
-            await bot.sendMessage(chatId, "*PARABÉNS, AVENTUREIRO! VOCÊ VENCEU!*", { parse_mode: "Markdown" });
-        } else {
-            await bot.sendMessage(chatId, messageText, { parse_mode: "Markdown" });
-            await bot.sendMessage(chatId, "*FIM DE JOGO! Sua aventura terminou aqui.* Digite /start para começar uma nova aventura.", { parse_mode: "Markdown" });
+        await bot.sendMessage(chatId, messageText, { parse_mode: "Markdown" });
+        if (section.imagem && section.imagem !== "nenhuma") {
+            const imagePath = path.join(__dirname, '..', 'assets', section.imagem);
+            if (fs.existsSync(imagePath)) await bot.sendPhoto(chatId, imagePath);
         }
-        deletePlayerState(chatId); // Limpa o estado do jogador
+        const finalMessage = section.fim_de_jogo === "vitoria" 
+            ? "*PARABÉNS, AVENTUREIRO! VOCÊ VENCEU!*"
+            : "*FIM DE JOGO! Sua aventura terminou aqui.*";
+        await bot.sendMessage(chatId, `${finalMessage}\nDigite /start para começar uma nova aventura.`, { parse_mode: "Markdown" });
+        deletePlayerState(chatId);
         return;
     }
 
@@ -797,134 +741,97 @@ async function displayGameSection(chatId, sectionId, bot, playerState) {
     if (section.combate) {
         await bot.sendMessage(chatId, messageText, { parse_mode: "Markdown" });
         startCombat(chatId, bot, playerState, section.combate);
-        return; // A lógica de combate continuará via callbacks do próprio combate.
+        return;
     }
 
-    // Lógica de Teste de Sorte
+    // Lógicas de Testes
     if (section.teste_sorte) {
         await bot.sendMessage(chatId, messageText, { parse_mode: "Markdown" });
         if (playerState.attributes.sorteAtual > 0) {
             const options = {
-                reply_markup: {
-                    inline_keyboard: [
-                        [{ text: `Testar sua Sorte (-1 Sorte)`, callback_data: `test_luck_section_${sectionId}` }]
-                    ]
-                },
+                reply_markup: { inline_keyboard: [[{ text: `Testar sua Sorte (-1 Sorte)`, callback_data: `test_luck_section_${sectionId}` }]] },
                 parse_mode: "Markdown"
             };
             await bot.sendMessage(chatId, "Deseja testar sua sorte?", options);
         } else {
             await bot.sendMessage(chatId, "Você não tem Sorte para este teste. Falha automática.", { parse_mode: "Markdown" });
-            // Se não tem sorte, falha automaticamente e segue para a seção de falha.
             if (section.teste_sorte.falha && section.teste_sorte.falha.vai_para) {
-                 applyAttributeModifier(playerState, section.teste_sorte.falha.efeito, bot, chatId);
-                 playerState.currentSection = section.teste_sorte.falha.vai_para;
-                 savePlayerState(chatId, playerState);
-                 await displayGameSection(chatId, playerState.currentSection, bot, playerState);
+                 if(section.teste_sorte.falha.efeito) applyAttributeModifier(playerState, section.teste_sorte.falha.efeito, bot, chatId);
+                 await displayGameSection(chatId, section.teste_sorte.falha.vai_para, bot, playerState);
             }
         }
-        return; // A lógica de teste de sorte será tratada pelo callback.
+        return;
     }
 
-    // Lógica de Teste de Dado
     if (section.teste_dado) {
         await bot.sendMessage(chatId, messageText, { parse_mode: "Markdown" });
         const options = {
-            reply_markup: {
-                inline_keyboard: [
-                    [{ text: `Rolar ${section.teste_dado.dados}d6`, callback_data: `test_dice_section_${sectionId}` }]
-                ]
-            },
+            reply_markup: { inline_keyboard: [[{ text: `Rolar ${section.teste_dado.dados}d6`, callback_data: `test_dice_section_${sectionId}` }]] },
             parse_mode: "Markdown"
         };
         await bot.sendMessage(chatId, "Hora de rolar os dados!", options);
-        return; // Lógica será tratada pelo callback.
+        return;
     }
 
-    // Lógica de Teste de Atributo
     if (section.teste_atributo) {
         await bot.sendMessage(chatId, messageText, { parse_mode: "Markdown" });
         const options = {
-            reply_markup: {
-                inline_keyboard: [
-                    [{ text: `Testar ${section.teste_atributo.atributo.toUpperCase()}`, callback_data: `test_attribute_section_${sectionId}` }]
-                ]
-            },
+            reply_markup: { inline_keyboard: [[{ text: `Testar ${section.teste_atributo.atributo.toUpperCase()}`, callback_data: `test_attribute_section_${sectionId}` }]] },
             parse_mode: "Markdown"
         };
         await bot.sendMessage(chatId, `Hora de testar sua *${section.teste_atributo.atributo.toUpperCase()}*!`, options);
-        return; // Lógica será tratada pelo callback.
+        return;
     }
 
-    // Lógica de Teste de Sorte Repetido
     if (section.teste_sorte_repetido) {
         await bot.sendMessage(chatId, messageText, { parse_mode: "Markdown" });
-        // Inicializa a contagem se ainda não foi feita
-        playerState.combat = playerState.combat || {}; // Reutiliza 'combat' para armazenar contagens de teste
+        playerState.combat = playerState.combat || {};
         playerState.combat.luckTestCount = 0;
-        savePlayerState(chatId, playerState);
-
         const options = {
-            reply_markup: {
-                inline_keyboard: [
-                    [{ text: `Tentar Sorte (-1 Sorte)`, callback_data: `test_repeated_luck_section_${sectionId}` }]
-                ]
-            },
+            reply_markup: { inline_keyboard: [[{ text: `Tentar Sorte (-1 Sorte)`, callback_data: `test_repeated_luck_section_${sectionId}` }]] },
             parse_mode: "Markdown"
         };
         await bot.sendMessage(chatId, section.teste_sorte_repetido.instrucoes, options);
-        return; // Lógica será tratada pelo callback.
+        return;
     }
 
-
-    // Lógica de Modificadores de Atributo (aplicados imediatamente)
+    // Modificadores e Itens
     if (section.modificador_atributo) {
         section.modificador_atributo.forEach(mod => {
             applyAttributeModifier(playerState, mod, bot, chatId);
         });
-        savePlayerState(chatId, playerState); // Salva após todos os modificadores
     }
 
-    // Lógica de Itens Encontrados
     if (section.item_encontrado) {
         for (const itemData of section.item_encontrado) {
             handleItemFound(chatId, bot, playerState, itemData);
         }
-        savePlayerState(chatId, playerState); // Salva após adicionar todos os itens
     }
 
-    // Lógica de Eventos Especiais
     if (section.evento) {
         await handleGameEvent(playerState, section.evento, bot, chatId);
-        savePlayerState(chatId, playerState);
-        // Alguns eventos podem redirecionar o fluxo, então verificamos se a seção mudou.
         if (playerState.currentSection !== sectionId) {
-             // Se o evento já lidou com a navegação, saia.
              return;
         }
     }
 
-
-    // Lógica para opções de navegação normais
+    // Opções de Navegação
     if (section.opcoes) {
-        section.opcoes.forEach((opcao, index) => {
-            // Verifica requisitos antes de adicionar o botão
+        section.opcoes.forEach((opcao) => {
             let canShowOption = true;
             if (opcao.requisito) {
                 if (opcao.requisito.item) {
-                    // Se o item é ouro, verifica a quantidade
                     if (opcao.requisito.item === "Ouro") {
                         canShowOption = (playerState.gold || 0) >= opcao.requisito.quantidade;
-                    } else if (opcao.requisito.item_tipo === "prata") { // Verifica se tem algum item de prata
+                    } else if (opcao.requisito.item_tipo === "prata") {
                         canShowOption = playerState.inventory.some(item => item.toLowerCase().includes("prata"));
-                    } else if (opcao.requisito.conhecimento) { // Verifica conhecimento adquirido
+                    } else if (opcao.requisito.conhecimento) {
                         canShowOption = playerState.knowledge && playerState.knowledge[opcao.requisito.conhecimento];
-                    } else { // Verifica item no inventário
+                    } else {
                         canShowOption = playerState.inventory.includes(opcao.requisito.item);
                     }
                 }
             }
-
             if (canShowOption) {
                 inlineKeyboard.push([{ text: opcao.texto, callback_data: `option_${opcao.vai_para}` }]);
             }
@@ -932,84 +839,55 @@ async function displayGameSection(chatId, sectionId, bot, playerState) {
     }
 
     const options = {
-        reply_markup: {
-            inline_keyboard: inlineKeyboard
-        },
+        reply_markup: { inline_keyboard: inlineKeyboard },
         parse_mode: "Markdown"
     };
 
-    // Envia a imagem se existir
+    // ### INÍCIO DO BLOCO CORRIGIDO ###
+    // 1. Envia a imagem, se existir.
     if (section.imagem && section.imagem !== "nenhuma") {
         const imagePath = path.join(__dirname, '..', 'assets', section.imagem);
         if (fs.existsSync(imagePath)) {
             try {
-                // Tenta editar a mensagem anterior com a nova imagem e texto
-                await bot.editMessageMedia(
-                    {
-                        type: 'photo',
-                        media: imagePath,
-                        caption: messageText,
-                        parse_mode: "Markdown"
-                    },
-                    {
-                        chat_id: chatId,
-                        message_id: playerState.lastMessageId // ID da última mensagem enviada pelo bot para edição.
-                    }
-                );
-                // Atualiza as opções do teclado em uma nova mensagem, pois editar media não edita reply_markup no mesmo call.
-                await bot.editMessageReplyMarkup(chatId, playerState.lastMessageId, { reply_markup: options.reply_markup });
-
-            } catch (error) { // Se não puder editar (mensagem muito antiga), envia uma nova.
-                console.error("Erro ao editar mensagem de imagem (provavelmente muito antiga ou sem lastMessageId):", error);
-                const sentMessage = await bot.sendPhoto(chatId, imagePath, { caption: messageText, ...options });
-                playerState.lastMessageId = sentMessage.message_id; // Guarda o ID da mensagem para futuras edições.
-                savePlayerState(chatId, playerState);
+                // Envia a foto primeiro, sem legenda, para evitar erros de tamanho.
+                await bot.sendPhoto(chatId, imagePath);
+            } catch (error) {
+                console.error(`Erro ao enviar a imagem ${imagePath}:`, error);
+                await bot.sendMessage(chatId, `(Erro ao carregar a imagem: ${section.imagem})`);
             }
         } else {
-            const sentMessage = await bot.sendMessage(chatId, messageText + "\n\n(Imagem não encontrada em " + section.imagem + ")", options);
-            playerState.lastMessageId = sentMessage.message_id; // Guarda o ID da mensagem para futuras edições.
-            savePlayerState(chatId, playerState);
-        }
-    } else {
-        // Se não há imagem, tenta editar o texto da mensagem anterior.
-        try {
-            await bot.editMessageText(messageText, {
-                chat_id: chatId,
-                message_id: playerState.lastMessageId, // ID da última mensagem enviada pelo bot para edição.
-                ...options
-            });
-        } catch (error) { // Se não puder editar, envia uma nova.
-            console.error("Erro ao editar mensagem de texto (provavelmente muito antiga ou sem lastMessageId):", error);
-            const sentMessage = await bot.sendMessage(chatId, messageText, options);
-            playerState.lastMessageId = sentMessage.message_id; // Guarda o ID da mensagem para futuras edições.
-            savePlayerState(chatId, playerState);
+            console.warn(`Arquivo de imagem não encontrado: ${section.imagem}`);
+            await bot.sendMessage(chatId, `(Imagem não encontrada: ${section.imagem})`);
         }
     }
 
-    // Salva o estado após a exibição da seção e potencial atualização de lastMessageId.
+    // 2. Em seguida, envia o texto da seção com os botões.
+    // Isso garante que a legenda nunca seja muito longa e evita erros de edição.
+    const sentMessage = await bot.sendMessage(chatId, messageText, options);
+    playerState.lastMessageId = sentMessage.message_id; // Salva o ID para referência futura
+    
     savePlayerState(chatId, playerState);
+    // ### FIM DO BLOCO CORRIGIDO ###
 }
 
 
 // Atualiza a função registerCallbackHandlers para chamar as novas lógicas
 function registerCallbackHandlers(bot) {
-    bot.on('callback_query', async (callbackQuery) => { // Adicionado 'async' aqui
+    bot.on('callback_query', async (callbackQuery) => {
         const message = callbackQuery.message;
         const chatId = message.chat.id;
         const data = callbackQuery.data;
 
         let playerState = loadPlayerState(chatId);
 
-        // Regra: Se não há playerState e não é um comando inicial, pede para iniciar.
         if (!playerState.currentSection && !["start_journey", "rumors", "go_back_to_main_menu"].includes(data) && !data.startsWith("roll_")) {
             bot.answerCallbackQuery(callbackQuery.id, { text: INTRO_TEXTS.common.startNewGame });
             bot.sendMessage(chatId, INTRO_TEXTS.common.startNewGame, { parse_mode: "Markdown" });
             return;
         }
 
-        await bot.answerCallbackQuery(callbackQuery.id); // Responde à query para remover o "loading" no Telegram
+        await bot.answerCallbackQuery(callbackQuery.id);
 
-        // Lógica para lidar com ações de combate
         if (data.startsWith("combat_")) {
             if (!playerState.combat) {
                 await bot.sendMessage(chatId, "Não há combate ativo no momento.", { parse_mode: "Markdown" });
@@ -1018,9 +896,7 @@ function registerCallbackHandlers(bot) {
             const combatAction = data.split('_')[1];
             const roundNumber = parseInt(data.split('_')[2]);
 
-            // Evita clicks duplicados na mesma rodada
             if (playerState.combat.lastActionRound === roundNumber) {
-                // await bot.sendMessage(chatId, "Ação já processada para esta rodada.", { parse_mode: "Markdown" });
                 return;
             }
             playerState.combat.lastActionRound = roundNumber;
@@ -1029,33 +905,30 @@ function registerCallbackHandlers(bot) {
             if (combatAction === "attack") {
                 await executeCombatRound(chatId, bot, playerState);
             } else if (combatAction === "flee") {
-                const currentMonster = playerState.combat.monsters[playerState.combat.currentMonsterIndex];
+                const fleeOption = playerState.combat.fleeOption;
                 let canFlee = true;
 
-                // Lógica de fuga condicional (ex: teste de sorte para fugir)
-                if (playerState.combat.fleeOption.teste_sorte) {
-                    playerState.attributes.sorteAtual--; // Perde 1 de sorte ao testar
+                if (fleeOption.teste_sorte) {
+                    playerState.attributes.sorteAtual--;
                     const luckRoll = rollDice(2, 6);
                     if (luckRoll > playerState.attributes.sorteAtual) {
-                        canFlee = false; // Falhou no teste de sorte para fugir
-                        await bot.sendMessage(chatId, `Você tentou fugir, mas falhou no Teste de Sorte (Rolou ${luckRoll} vs Sorte ${playerState.attributes.sorteAtual}). Você não consegue escapar e deve continuar lutando.`, { parse_mode: "Markdown" });
+                        canFlee = false;
+                        await bot.sendMessage(chatId, `Você tentou fugir, mas falhou no Teste de Sorte (Rolou ${luckRoll} vs Sorte ${playerState.attributes.sorteAtual}).`, { parse_mode: "Markdown" });
                     } else {
                         await bot.sendMessage(chatId, `Você teve sorte e conseguiu fugir!`, { parse_mode: "Markdown" });
                     }
                 }
 
                 if (canFlee) {
-                    applyAttributeModifier(playerState, { atributo: "ENERGIA", valor: -2 }, bot, chatId); // Penalidade de fuga
-                    if (playerState.combat.fleeOption.efeito) {
-                        // Aplica efeitos adicionais de fuga, como perder provisão
-                        handleGameEvent(playerState, playerState.combat.fleeOption.efeito, bot, chatId);
+                    applyAttributeModifier(playerState, { atributo: "ENERGIA", valor: -2 }, bot, chatId);
+                    if (fleeOption.efeito) {
+                        handleGameEvent(playerState, fleeOption.efeito, bot, chatId);
                     }
-                    playerState.combat = null; // Encerra o combate
+                    playerState.combat = null;
                     savePlayerState(chatId, playerState);
-                    await bot.sendMessage(chatId, `Você fugiu do combate, mas perdeu 2 de ENERGIA. Sua ENERGIA atual: ${playerState.attributes.energiaAtual}.`, { parse_mode: "Markdown" });
-                    await displayGameSection(chatId, playerState.combat.fleeOption.vai_para, bot, playerState);
+                    await bot.sendMessage(chatId, `Você fugiu do combate, mas perdeu 2 de ENERGIA.`, { parse_mode: "Markdown" });
+                    await displayGameSection(chatId, fleeOption.vai_para, bot, playerState);
                 } else {
-                    // Se não pôde fugir, volta para a próxima rodada de combate
                     await sendCombatRoundMessage(chatId, bot, playerState);
                 }
             } else if (combatAction === "use_luck") {
@@ -1064,7 +937,6 @@ function registerCallbackHandlers(bot) {
             return;
         }
 
-        // Lógica para testes de sorte/dados/atributo
         if (data.startsWith("test_luck_section_")) {
             const originalSectionId = data.split('_')[3];
             await handleLuckTest(chatId, bot, playerState, GAME_HISTORY[originalSectionId].teste_sorte);
@@ -1085,13 +957,11 @@ function registerCallbackHandlers(bot) {
             await handleRepeatedLuckTest(chatId, bot, playerState, GAME_HISTORY[originalSectionId].teste_sorte_repetido);
             return;
         }
-        if (data === "test_repeated_luck") { // Botão de retentar teste de sorte repetido
-            const currentSection = playerState.currentSection; // Pega a seção atual do playerState
+        if (data === "test_repeated_luck") {
+            const currentSection = playerState.currentSection;
             await handleRepeatedLuckTest(chatId, bot, playerState, GAME_HISTORY[currentSection].teste_sorte_repetido);
             return;
         }
-
-        // Lógica para jogos (dados, cartas) que exigem múltiplos callbacks ou input
         if (data.startsWith("bet_gold_")) {
             let amount = 0;
             if (data === "bet_gold_all") {
@@ -1101,13 +971,11 @@ function registerCallbackHandlers(bot) {
             }
 
             if (playerState.gold < amount) {
-                await bot.sendMessage(chatId, `Você não tem ${amount} ouro para apostar. Seu ouro atual: ${playerState.gold}.`, { parse_mode: "Markdown" });
-                // Permite escolher novamente ou sair
-                await handleDiceGameBet(chatId, bot, playerState, GAME_HISTORY["130"].evento); // Re-exibe opções
+                await bot.sendMessage(chatId, `Você não tem ${amount} ouro para apostar.`, { parse_mode: "Markdown" });
+                await handleDiceGameBet(chatId, bot, playerState, GAME_HISTORY["130"].evento);
                 return;
             }
 
-            // Executa o jogo de dados (seção 130)
             const playerRoll = rollDice(2, 6);
             const oldManRoll = rollDice(2, 6);
             let resultMessage = `Você apostou ${amount} ouro. Sua rolagem: ${playerRoll}. Rolagem do velho: ${oldManRoll}.\n`;
@@ -1115,11 +983,10 @@ function registerCallbackHandlers(bot) {
             if (playerRoll > oldManRoll) {
                 playerState.gold += amount;
                 resultMessage += `*Você ganhou ${amount} ouro!* Seu ouro atual: ${playerState.gold}.`;
-                // Aplica recompensa de vitória (HAB, EN, SORTE)
                 if (GAME_HISTORY["130"].evento.recompensa_vitoria) {
-                    applyAttributeModifier(playerState, GAME_HISTORY["130"].evento.recompensa_vitoria.modificador_atributo[0], bot, chatId);
-                    applyAttributeModifier(playerState, GAME_HISTORY["130"].evento.recompensa_vitoria.modificador_atributo[1], bot, chatId);
-                    applyAttributeModifier(playerState, GAME_HISTORY["130"].evento.recompensa_vitoria.modificador_atributo[2], bot, chatId);
+                    GAME_HISTORY["130"].evento.recompensa_vitoria.modificador_atributo.forEach(mod => {
+                        applyAttributeModifier(playerState, mod, bot, chatId);
+                    });
                 }
             } else {
                 playerState.gold -= amount;
@@ -1127,11 +994,9 @@ function registerCallbackHandlers(bot) {
             }
             savePlayerState(chatId, playerState);
             await bot.sendMessage(chatId, resultMessage, { parse_mode: "Markdown" });
-            // Retorna para a seção 130 para permitir continuar jogando ou sair.
             await displayGameSection(chatId, "130", bot, playerState);
             return;
         }
-
         if (data === "card_game_honest" || data === "card_game_cheat") {
             let message = "";
             let success = false;
@@ -1139,14 +1004,14 @@ function registerCallbackHandlers(bot) {
             if (data === "card_game_honest") {
                 const roll = rollDice(2, 6);
                 message += `Você jogou honestamente. Rolou ${roll} (Par ou Ímpar).\n`;
-                success = (roll % 2 !== 0); // Ímpar ganha
-            } else { // card_game_cheat
+                success = (roll % 2 !== 0);
+            } else {
                 if (playerState.attributes.sorteAtual <= 0) {
                     await bot.sendMessage(chatId, "Você não tem sorte para trapacear.", { parse_mode: "Markdown" });
-                    await handleCardGameLuck(chatId, bot, playerState, GAME_HISTORY["346"].evento); // Re-exibe opções
+                    await handleCardGameLuck(chatId, bot, playerState, GAME_HISTORY["346"].evento);
                     return;
                 }
-                playerState.attributes.sorteAtual--; // Perde 1 de sorte
+                playerState.attributes.sorteAtual--;
                 const luckRoll = rollDice(2, 6);
                 message += `Você tentou trapacear. Teste de Sorte (Sorte atual: ${playerState.attributes.sorteAtual}). Rolou ${luckRoll}.\n`;
                 success = (luckRoll <= playerState.attributes.sorteAtual);
@@ -1154,10 +1019,10 @@ function registerCallbackHandlers(bot) {
 
             if (success) {
                 message += "*Você venceu no jogo de cartas!* Eles são amigáveis.";
-                playerState.currentSection = "131"; // Seção de vitória/continuação para o jogo de cartas
+                playerState.currentSection = "131";
             } else {
                 message += "*Você perdeu no jogo de cartas!* Eles percebem a trapaça ou você simplesmente perdeu. Prepare-se!";
-                playerState.currentSection = "20"; // Seção de combate ou falha
+                playerState.currentSection = "20";
             }
             savePlayerState(chatId, playerState);
             await bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
@@ -1167,28 +1032,26 @@ function registerCallbackHandlers(bot) {
 
         switch (data) {
             case "start_journey":
-                // Início da criação do personagem:
-                playerState = loadPlayerState(chatId); // Garante que um novo estado seja carregado/criado
-                playerState.attributes = {};
-                playerState.inventory = ["Espada", "Armadura de Couro", "Lanterna"];
-                playerState.provisions = 10;
-                playerState.gold = 0; // Inicia com 0 ouro
-                playerState.jewels = []; // Inicia sem joias
-                playerState.potion = null;
-                playerState.currentSection = 'generate_attributes_habilidade';
-                playerState.combat = null; // Reseta o estado de combate
-                playerState.temporaryModifiers = {}; // Reseta modificadores temporários
-                playerState.knowledge = {}; // Reseta conhecimentos
-                playerState.cursedItems = []; // Reseta itens amaldiçoados
-                playerState.anotatedSection = null; // Reseta seções anotadas
-
+                playerState = {
+                    attributes: {},
+                    inventory: ["Espada", "Armadura de Couro", "Lanterna"],
+                    provisions: 10,
+                    gold: 0,
+                    jewels: [],
+                    potion: null,
+                    currentSection: 'generate_attributes_habilidade',
+                    combat: null,
+                    temporaryModifiers: {},
+                    knowledge: {},
+                    cursedItems: [],
+                    anotatedSection: null
+                };
                 savePlayerState(chatId, playerState);
-
-                await bot.sendMessage(chatId, INTRO_TEXTS.attributeGeneration.habilidade.prompt, {
+                await bot.editMessageText(INTRO_TEXTS.attributeGeneration.habilidade.prompt, {
+                    chat_id: chatId,
+                    message_id: message.message_id,
                     reply_markup: {
-                        inline_keyboard: [
-                            [{ text: INTRO_TEXTS.attributeGeneration.habilidade.buttonText, callback_data: "roll_d6_habilidade" }]
-                        ]
+                        inline_keyboard: [[{ text: INTRO_TEXTS.attributeGeneration.habilidade.buttonText, callback_data: "roll_d6_habilidade" }]]
                     },
                     parse_mode: "Markdown"
                 });
@@ -1196,42 +1059,27 @@ function registerCallbackHandlers(bot) {
 
             case "rumors":
                 const optionsBelowRumors = {
-                    reply_markup: {
-                        inline_keyboard: [
-                            [{ text: "Voltar", callback_data: "go_back_to_main_menu" }],
-                            [{ text: "Começar Jornada", callback_data: "start_journey" }]
-                        ]
-                    },
+                    reply_markup: { inline_keyboard: [[{ text: "Voltar", callback_data: "go_back_to_main_menu" }], [{ text: "Começar Jornada", callback_data: "start_journey" }]] },
                     parse_mode: "Markdown"
                 };
-
                 try {
-                    await bot.editMessageText(INTRO_TEXTS.rumorsText, { //
-                        chat_id: chatId,
-                        message_id: message.message_id,
-                        ...optionsBelowRumors
+                    await bot.editMessageText(INTRO_TEXTS.rumorsText, {
+                        chat_id: chatId, message_id: message.message_id, ...optionsBelowRumors
                     });
                 } catch (error) {
-                    console.error("Erro ao editar mensagem de boatos (provavelmente muito antiga):", error);
                     await bot.sendMessage(chatId, INTRO_TEXTS.rumorsText, optionsBelowRumors);
                 }
                 break;
 
             case "go_back_to_main_menu":
                 try {
-                    await bot.editMessageText(INTRO_TEXTS.welcomeMessage, { //
+                    await bot.editMessageText(INTRO_TEXTS.welcomeMessage, {
                         chat_id: chatId,
                         message_id: message.message_id,
-                        reply_markup: {
-                            inline_keyboard: [
-                                [{ text: "Começar a Jornada", callback_data: "start_journey" }],
-                                [{ text: "Boatos", callback_data: "rumors" }]
-                            ]
-                        },
+                        reply_markup: { inline_keyboard: [[{ text: "Começar a Jornada", callback_data: "start_journey" }], [{ text: "Boatos", callback_data: "rumors" }]] },
                         parse_mode: "Markdown"
                     });
                 } catch (error) {
-                    console.error("Erro ao tentar editar mensagem para voltar ao menu principal:", error);
                     displayMainMenu(chatId, bot);
                 }
                 break;
@@ -1243,18 +1091,12 @@ function registerCallbackHandlers(bot) {
                     playerState.attributes.habilidadeAtual = playerState.attributes.habilidadeInicial;
                     playerState.currentSection = 'generate_attributes_energia';
                     savePlayerState(chatId, playerState);
-
-                    await bot.sendMessage(chatId, `Você rolou ${roll}. Sua *HABILIDADE* inicial é: *${playerState.attributes.habilidadeInicial}*.
-                    ${INTRO_TEXTS.attributeGeneration.energia.prompt}`, {
-                        reply_markup: {
-                            inline_keyboard: [
-                                [{ text: INTRO_TEXTS.attributeGeneration.energia.buttonText, callback_data: "roll_2d6_energia" }]
-                            ]
-                        },
+                    await bot.editMessageText(`Você rolou ${roll}. Sua *HABILIDADE* inicial é: *${playerState.attributes.habilidadeInicial}*.\n${INTRO_TEXTS.attributeGeneration.energia.prompt}`, {
+                        chat_id: chatId,
+                        message_id: message.message_id,
+                        reply_markup: { inline_keyboard: [[{ text: INTRO_TEXTS.attributeGeneration.energia.buttonText, callback_data: "roll_2d6_energia" }]] },
                         parse_mode: "Markdown"
                     });
-                } else {
-                    await bot.sendMessage(chatId, INTRO_TEXTS.attributeGeneration.habilidade.invalidRoll);
                 }
                 break;
 
@@ -1266,18 +1108,12 @@ function registerCallbackHandlers(bot) {
                     playerState.attributes.energiaAtual = playerState.attributes.energiaInicial;
                     playerState.currentSection = 'generate_attributes_sorte';
                     savePlayerState(chatId, playerState);
-
-                    await bot.sendMessage(chatId, `Você rolou ${roll1} e ${roll2}. Sua *ENERGIA* inicial é: *${playerState.attributes.energiaInicial}*.
-                    ${INTRO_TEXTS.attributeGeneration.sorte.prompt}`, {
-                        reply_markup: {
-                            inline_keyboard: [
-                                [{ text: INTRO_TEXTS.attributeGeneration.sorte.buttonText, callback_data: "roll_d6_sorte" }]
-                            ]
-                        },
+                    await bot.editMessageText(`Você rolou ${roll1} e ${roll2}. Sua *ENERGIA* inicial é: *${playerState.attributes.energiaInicial}*.\n${INTRO_TEXTS.attributeGeneration.sorte.prompt}`, {
+                        chat_id: chatId,
+                        message_id: message.message_id,
+                        reply_markup: { inline_keyboard: [[{ text: INTRO_TEXTS.attributeGeneration.sorte.buttonText, callback_data: "roll_d6_sorte" }]] },
                         parse_mode: "Markdown"
                     });
-                } else {
-                    await bot.sendMessage(chatId, INTRO_TEXTS.attributeGeneration.energia.invalidRoll);
                 }
                 break;
 
@@ -1288,52 +1124,34 @@ function registerCallbackHandlers(bot) {
                     playerState.attributes.sorteAtual = playerState.attributes.sorteInicial;
                     playerState.currentSection = 'choose_potion';
                     savePlayerState(chatId, playerState);
-
-                    await bot.sendMessage(chatId, INTRO_TEXTS.attributeGeneration.potionChoice, { //
-                        reply_markup: {
-                            inline_keyboard: 
-                                INTRO_TEXTS.attributeGeneration.potionOptions.map(option => [{ //
-                                    text: option.text,
-                                    callback_data: option.callback_data
-                                }])
-                            
-                        },
+                    await bot.editMessageText(INTRO_TEXTS.attributeGeneration.potionChoice, {
+                        chat_id: chatId,
+                        message_id: message.message_id,
+                        reply_markup: { inline_keyboard: INTRO_TEXTS.attributeGeneration.potionOptions.map(option => [option]) },
                         parse_mode: "Markdown"
                     });
-                } else {
-                    await bot.sendMessage(chatId, INTRO_TEXTS.attributeGeneration.sorte.invalidRoll);
                 }
                 break;
 
-            // Escolha da Poção
             case "choose_potion_habilidade":
             case "choose_potion_forca":
             case "choose_potion_fortuna":
                 if (playerState && playerState.currentSection === 'choose_potion') {
-                    let potionName;
-                    let potionType;
+                    let potionName, potionType;
                     if (data.includes('habilidade')) {
-                        potionName = 'Poção da Habilidade';
-                        potionType = 'habilidade';
+                        potionName = 'Poção da Habilidade'; potionType = 'habilidade';
+                    } else if (data.includes('forca')) {
+                        potionName = 'Poção da Força'; potionType = 'forca';
+                    } else {
+                        potionName = 'Poção da Fortuna'; potionType = 'fortuna';
                     }
-                    else if (data.includes('forca')) {
-                        potionName = 'Poção da Força';
-                        potionType = 'forca';
-                    }
-                    else {
-                        potionName = 'Poção da Fortuna';
-                        potionType = 'fortuna';
-                    }
-
-                    playerState.potion = { name: potionName, doses: 2, type: potionType }; // Adiciona o tipo de poção
-                    playerState.currentSection = '1'; // A primeira página do jogo real é a "1"
-                    savePlayerState(chatId, playerState);
-
-                    await bot.sendMessage(chatId, `Você escolheu a *${potionName}*! Sua aventura está prestes a começar.`, { parse_mode: "Markdown" });
-                    await bot.sendMessage(chatId, buildPlayerSheetMessage(playerState), { parse_mode: "Markdown" }); // Exibe a ficha após a escolha da poção
-                    await displayGameSection(chatId, '1', bot, playerState); // Exibe a página 1 do gameData.json
-                } else {
-                    await bot.sendMessage(chatId, INTRO_TEXTS.attributeGeneration.invalidPotion + "\n" + INTRO_TEXTS.common.startNewGame);
+                    playerState.potion = { name: potionName, doses: 2, type: potionType };
+                    playerState.currentSection = '1';
+                    await bot.editMessageText(`Você escolheu a *${potionName}*! Sua aventura está prestes a começar.`, {
+                        chat_id: chatId, message_id: message.message_id, parse_mode: "Markdown"
+                    });
+                    await bot.sendMessage(chatId, buildPlayerSheetMessage(playerState), { parse_mode: "Markdown" });
+                    await displayGameSection(chatId, '1', bot, playerState);
                 }
                 break;
 
@@ -1341,17 +1159,16 @@ function registerCallbackHandlers(bot) {
                 if (data.startsWith("option_")) {
                     const nextSectionId = data.split('_')[1];
                     if (playerState) {
-                        // Limpa o estado de combate quando o jogador navega por opções normais.
                         playerState.combat = null;
-                        playerState.temporaryModifiers = {}; // Limpa modificadores temporários
-                        playerState.anotatedSection = null; // Limpa seção anotada
+                        playerState.temporaryModifiers = {};
+                        playerState.anotatedSection = null;
                         savePlayerState(chatId, playerState);
                         await displayGameSection(chatId, nextSectionId, bot, playerState);
                     } else {
                         await bot.sendMessage(chatId, INTRO_TEXTS.common.startNewGame);
                     }
                 } else {
-                    console.log(`Callback de dado não tratado: ${data}. Player state: ${playerState ? playerState.currentSection : 'none'}`);
+                    console.log(`Callback não tratado: ${data}.`);
                     await bot.sendMessage(chatId, INTRO_TEXTS.common.invalidChoice);
                 }
                 break;
@@ -1367,21 +1184,21 @@ module.exports = {
 // Função auxiliar para exibir a ficha do jogador
 function buildPlayerSheetMessage(playerState) {
     return `
-        *--- SUA FICHA DE AVENTURA ---*
-        *HABILIDADE Inicial:* ${playerState.attributes.habilidadeInicial}
-        *HABILIDADE Atual:* ${playerState.attributes.habilidadeAtual}
+*--- SUA FICHA DE AVENTURA ---*
+*HABILIDADE Inicial:* ${playerState.attributes.habilidadeInicial}
+*HABILIDADE Atual:* ${playerState.attributes.habilidadeAtual}
 
-        *ENERGIA Inicial:* ${playerState.attributes.energiaInicial}
-        *ENERGIA Atual:* ${playerState.attributes.energiaAtual}
+*ENERGIA Inicial:* ${playerState.attributes.energiaInicial}
+*ENERGIA Atual:* ${playerState.attributes.energiaAtual}
 
-        *SORTE Inicial:* ${playerState.attributes.sorteInicial}
-        *SORTE Atual:* ${playerState.attributes.sorteAtual}
+*SORTE Inicial:* ${playerState.attributes.sorteInicial}
+*SORTE Atual:* ${playerState.attributes.sorteAtual}
 
-        *ITENS:* ${playerState.inventory.length > 0 ? playerState.inventory.join(', ') : 'Nenhum'}
-        *PROVISÕES RESTANTES:* ${playerState.provisions}
-        *OURO:* ${playerState.gold}
-        *JÓIAS:* ${playerState.jewels.length > 0 ? playerState.jewels.map(j => j.name).join(', ') : 'Nenhuma'}
-        *POÇÃO:* ${playerState.potion ? `${playerState.potion.name} (${playerState.potion.doses} doses)` : 'Nenhuma'}
-        *--------------------------------*
+*ITENS:* ${playerState.inventory.length > 0 ? playerState.inventory.join(', ') : 'Nenhum'}
+*PROVISÕES RESTANTES:* ${playerState.provisions}
+*OURO:* ${playerState.gold}
+*JÓIAS:* ${playerState.jewels.length > 0 ? playerState.jewels.map(j => j.name).join(', ') : 'Nenhuma'}
+*POÇÃO:* ${playerState.potion ? `${playerState.potion.name} (${playerState.potion.doses} doses)` : 'Nenhuma'}
+*--------------------------------*
     `;
 }
